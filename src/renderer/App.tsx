@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { TitleBar } from './components/TitleBar';
 import { ProjectCard } from './components/ProjectCard';
 import { CreateProjectDialog } from './components/CreateProjectDialog';
@@ -6,14 +6,52 @@ import { useProjectStore } from './stores/project-store';
 
 const App: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [view, setView] = useState<'list' | 'detail'>('list');
-  const { projects, fetchProjects, isLoading, error, selectedProjectId, selectProject } = useProjectStore();
+  const { projects, fetchProjects, isLoading, error, selectProject } = useProjectStore();
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
 
-  const selectedProject = projects.find(p => p.id === selectedProjectId);
+  // Keyboard shortcuts
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Don't trigger if typing in an input
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    // N - New project
+    if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault();
+      setIsCreateDialogOpen(true);
+      return;
+    }
+
+    // 1-9 - Select project by number
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= 9 && num <= projects.length) {
+      e.preventDefault();
+      const project = projects[num - 1];
+      if (project) {
+        selectProject(project.id);
+        // Focus the quick update input for that project
+        setTimeout(() => {
+          const input = document.querySelector(`[data-project-index="${num - 1}"] input`) as HTMLInputElement;
+          if (input) input.focus();
+        }, 50);
+      }
+      return;
+    }
+
+    // Escape - Deselect
+    if (e.key === 'Escape') {
+      selectProject(null);
+    }
+  }, [projects, selectProject]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   const statusCounts = {
     active: projects.filter(p => p.status === 'active').length,
@@ -83,23 +121,27 @@ const App: React.FC = () => {
             </div>
           ) : (
             <div className="p-2 space-y-1">
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
+              {projects.map((project, index) => (
+                <ProjectCard key={project.id} project={project} index={index} />
               ))}
             </div>
           )}
         </main>
 
-        {/* Bottom Bar - Quick Add */}
+        {/* Bottom Bar - Keyboard Shortcuts */}
         <div className="p-3 border-t border-white/5">
-          <div className="flex items-center gap-2 text-white/30 text-xs">
+          <div className="flex items-center gap-3 text-white/30 text-xs">
             <span className="flex items-center gap-1">
               <kbd className="px-1 py-0.5 rounded bg-white/10 text-[10px]">N</kbd>
               New
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-white/10 text-[10px]">Q</kbd>
-              Quick Add
+              <kbd className="px-1 py-0.5 rounded bg-white/10 text-[10px]">1-9</kbd>
+              Select
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded bg-white/10 text-[10px]">Esc</kbd>
+              Close
             </span>
           </div>
         </div>

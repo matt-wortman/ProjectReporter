@@ -1,0 +1,10 @@
+Here are things to do next
+create hotkey for each project that open the comment menu for that project
+create metadata shortcuts like using the '@' to declare a person (eg, @Santa Clause)
+have a time since last update next to each project name
+Add ability to edit a project, like the name or icon or whatever else.
+Ability to assign a project a background color
+can we make the background image also the weather as on option, like in the temp app?
+We need to organize the interface. when you click the down arrow to open a project, we shouldn't see the 'active' dropdown, that should be in the project's edit area
+when you click the dropdown, you should see the last update right under the project name and the 'Add update...' box should be at the bottom of the dropdown and the caret should already be there ready to type
+In fact, we should have a quick update text box under each project so  you don't even need to use the dropdown

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import type { ProjectWithUpdates } from '../../shared/types';
-import { QuickUpdateInput } from './QuickUpdateInput';
 import { UpdateTimeline } from './UpdateTimeline';
+import { EditProjectDialog } from './EditProjectDialog';
+import { UpdateInput } from './UpdateInput';
 import { useProjectStore } from '../stores/project-store';
 
 interface ProjectCardProps {
   project: ProjectWithUpdates;
+  index: number;
 }
 
 const statusColors: Record<string, { dot: string; bg: string }> = {
@@ -15,9 +17,12 @@ const statusColors: Record<string, { dot: string; bg: string }> = {
   'archived': { dot: 'bg-gray-400', bg: 'bg-gray-500/10' },
 };
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+export const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { selectProject, selectedProjectId, deleteProject, updateProject } = useProjectStore();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [quickUpdate, setQuickUpdate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { selectProject, selectedProjectId, createUpdate } = useProjectStore();
   const isSelected = selectedProjectId === project.id;
 
   const formatDate = (dateString: string) => {
@@ -44,68 +49,91 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
-    await updateProject({ id: project.id, status: newStatus as 'active' | 'on-hold' | 'completed' | 'archived' });
-  };
+  const handleQuickUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickUpdate.trim() || isSubmitting) return;
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm('Delete this project?')) {
-      await deleteProject(project.id);
+    setIsSubmitting(true);
+    try {
+      await createUpdate({ projectId: project.id, content: quickUpdate.trim() });
+      setQuickUpdate('');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const colors = statusColors[project.status] || statusColors.archived;
+  const cardStyle = project.color ? { backgroundColor: `${project.color}20` } : {};
 
   return (
-    <div className="animate-fadeIn">
-      {/* Main Card Row */}
+    <div className="animate-fadeIn" data-project-index={index}>
+      {/* Main Card */}
       <div
-        className={`
-          flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all
-          ${isSelected ? 'bg-white/10' : 'hover:bg-white/5'}
-        `}
-        onClick={handleCardClick}
+        className={`rounded-lg transition-all ${isSelected ? 'bg-white/10' : 'hover:bg-white/5'}`}
+        style={cardStyle}
       >
-        {/* Status Dot */}
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${colors.dot}`} />
-
-        {/* Icon */}
-        {project.icon && (
-          <span className="text-base flex-shrink-0">{project.icon}</span>
-        )}
-
-        {/* Name & Last Update */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-white truncate">{project.name}</span>
-            {project.updates.length > 0 && (
-              <span className="text-[10px] text-white/30 flex-shrink-0">
-                {project.updates.length} update{project.updates.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          {project.lastUpdate && (
-            <p className="text-xs text-white/40 truncate mt-0.5">
-              {project.lastUpdate.content}
-            </p>
+        {/* Header Row - Clickable */}
+        <div
+          className="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+          onClick={handleCardClick}
+        >
+          {/* Hotkey Number */}
+          {index < 9 && (
+            <span className="text-[10px] text-white/20 w-3 flex-shrink-0">{index + 1}</span>
           )}
+
+          {/* Status Dot */}
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${colors.dot}`} />
+
+          {/* Icon */}
+          {project.icon && (
+            <span className="text-base flex-shrink-0">{project.icon}</span>
+          )}
+
+          {/* Name & Time */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-white truncate">{project.name}</span>
+              <span className="text-[10px] text-white/30 flex-shrink-0">
+                {project.lastUpdate ? formatDate(project.lastUpdate.createdAt) : formatDate(project.createdAt)}
+              </span>
+            </div>
+          </div>
+
+          {/* Edit Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditOpen(true);
+            }}
+            className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
+          >
+            <svg className="w-3 h-3 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+
+          {/* Expand Icon */}
+          <svg
+            className={`w-3 h-3 text-white/30 transition-transform ${isExpanded && isSelected ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
 
-        {/* Time */}
-        <span className="text-[10px] text-white/30 flex-shrink-0">
-          {project.lastUpdate ? formatDate(project.lastUpdate.createdAt) : formatDate(project.createdAt)}
-        </span>
-
-        {/* Expand Icon */}
-        <svg
-          className={`w-3 h-3 text-white/30 transition-transform ${isExpanded && isSelected ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        {/* Quick Update Input - Always visible under project name */}
+        <div className="px-3 pb-2" onClick={e => e.stopPropagation()}>
+          <UpdateInput
+            value={quickUpdate}
+            onChange={setQuickUpdate}
+            onSubmit={() => handleQuickUpdate({ preventDefault: () => {} } as React.FormEvent)}
+            placeholder="Quick update... (@ for mentions, # for tags)"
+            disabled={isSubmitting}
+          />
+        </div>
       </div>
 
       {/* Expanded Content */}
@@ -118,36 +146,54 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             </p>
           )}
 
-          {/* Quick Update Input */}
-          <QuickUpdateInput projectId={project.id} />
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/5">
-            <select
-              value={project.status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className="text-[10px] px-2 py-1 rounded bg-white/5 border border-white/10 text-white/60
-                       focus:outline-none focus:border-white/20"
-              onClick={e => e.stopPropagation()}
-            >
-              <option value="active">Active</option>
-              <option value="on-hold">On Hold</option>
-              <option value="completed">Completed</option>
-              <option value="archived">Archived</option>
-            </select>
-            <div className="flex-1" />
-            <button
-              onClick={handleDelete}
-              className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
+          {/* Last Update - Prominent */}
+          {project.lastUpdate && (
+            <div className="mb-3 p-2 rounded bg-white/5 border border-white/5">
+              <p className="text-xs text-white/70">{project.lastUpdate.content}</p>
+              <span className="text-[10px] text-white/30 mt-1 block">
+                {formatDate(project.lastUpdate.createdAt)}
+              </span>
+            </div>
+          )}
 
           {/* Update Timeline */}
-          <UpdateTimeline updates={project.updates} />
+          <UpdateTimeline updates={project.updates.slice(1)} />
+
+          {/* Bottom Input - Auto-focused */}
+          <div className="mt-3 pt-2 border-t border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <UpdateInput
+                  value={quickUpdate}
+                  onChange={setQuickUpdate}
+                  onSubmit={() => handleQuickUpdate({ preventDefault: () => {} } as React.FormEvent)}
+                  placeholder="Add update... (@ for mentions, # for tags)"
+                  disabled={isSubmitting}
+                  autoFocus={true}
+                  className="px-3 py-1.5 rounded-lg"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleQuickUpdate({ preventDefault: () => {} } as React.FormEvent)}
+                disabled={!quickUpdate.trim() || isSubmitting}
+                className="px-2 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs
+                         hover:bg-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed
+                         transition-colors"
+              >
+                {isSubmitting ? '...' : 'Add'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <EditProjectDialog
+        project={project}
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+      />
     </div>
   );
 };

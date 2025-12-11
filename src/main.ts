@@ -20,10 +20,10 @@ const createWindow = () => {
 
   // Create the browser window with custom titlebar
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    width: 400,
+    height: 500,
+    minWidth: 320,
+    minHeight: 300,
     frame: false, // Custom titlebar
     titleBarStyle: 'hidden',
     backgroundColor: '#fafaf9',
@@ -44,10 +44,7 @@ const createWindow = () => {
     );
   }
 
-  // Open the DevTools in development
-  if (process.env.NODE_ENV === 'development' || MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.webContents.openDevTools();
-  }
+  // DevTools can be opened manually with F12
 };
 
 // This method will be called when Electron has finished

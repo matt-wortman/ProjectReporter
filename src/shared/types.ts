@@ -47,7 +47,7 @@ export const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
   status: z.enum(['active', 'on-hold', 'completed', 'archived']).optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  color: z.string().optional(), // Empty string clears the color
   icon: z.string().max(10).optional(),
   isPublished: z.boolean().optional(),
 });

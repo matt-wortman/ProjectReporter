@@ -89,8 +89,8 @@ export class ProjectService {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.status !== undefined) updateData.status = data.status;
-    if (data.color !== undefined) updateData.color = data.color;
-    if (data.icon !== undefined) updateData.icon = data.icon;
+    if (data.color !== undefined) updateData.color = data.color || null; // Empty string clears color
+    if (data.icon !== undefined) updateData.icon = data.icon || null; // Empty string clears icon
     if (data.isPublished !== undefined) updateData.isPublished = data.isPublished;
 
     db.update(schema.projects)
